@@ -8,4 +8,5 @@ public class Order
     public string ClientId { get; set; } = string.Empty;
     public List<string> Items { get; set; } = new();
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
+
 }

@@ -7,7 +7,7 @@ using OrderProcessing.Domain.Entities;
 namespace OrderProcessing.Application.Commands.CreateOrder;
 
 public class CreateOrderCommandHandler(IOrderRepository orderRepository,
-    IMessageQueue messageQueue,
+    IMessageBroker messageBroker,
     IMapper mapper,
     ILogger logger) : IRequestHandler<CreateOrderCommand, Guid>
 {
@@ -15,9 +15,11 @@ public class CreateOrderCommandHandler(IOrderRepository orderRepository,
     {
         var order = mapper.Map<Order>(command);
         order.Id = Guid.NewGuid();
-        orderRepository.Add(order);
-        await messageQueue.PublishAsync(order.Id);
-        logger.LogInformation($"Order {order.Id} created and published to queue.");
+        
+        await orderRepository.AddAsync(order);
+        await messageBroker.PublishOrderAsync(order);
+        
+        logger.LogInformation($"Order {order.Id} for client {order.ClientId} created and published to queue.");
         return order.Id;
     }
 

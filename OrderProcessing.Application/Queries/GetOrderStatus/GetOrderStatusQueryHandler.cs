@@ -12,14 +12,18 @@ public class GetOrderStatusQueryHandler(IOrderRepository orderRepository,
 {
     public async Task<OrderResponse> Handle(GetOrderStatusQuery request, CancellationToken cancellationToken)
     {
-        var order = orderRepository.GetById(request.OrderId);
+        var order = await orderRepository.GetByIdAsync(request.OrderId);
+
+        if (order == null)
+        {
+            throw new KeyNotFoundException($"Order with ID {request.OrderId} not found.");
+        }
 
         var response = mapper.Map<OrderResponse>(order);
 
         logger.LogInformation($"Order {order.Id} found with status: {order.Status}.");
 
         return await Task.FromResult(response);
-
 
     }
 
