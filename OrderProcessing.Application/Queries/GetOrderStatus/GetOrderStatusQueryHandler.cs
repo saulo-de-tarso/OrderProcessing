@@ -3,12 +3,15 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using OrderProcessing.Application.DTOs;
 using OrderProcessing.Application.Interfaces;
+using OrderProcessing.Domain.Entities;
+using OrderProcessing.Domain.Exceptions;
+using System.Data;
 
 namespace OrderProcessing.Application.Queries.GetOrderStatus;
 
 public class GetOrderStatusQueryHandler(IOrderRepository orderRepository,
     IMapper mapper,
-    ILogger logger) : IRequestHandler<GetOrderStatusQuery, OrderResponse>
+    ILogger<GetOrderStatusQueryHandler> logger) : IRequestHandler<GetOrderStatusQuery, OrderResponse>
 {
     public async Task<OrderResponse> Handle(GetOrderStatusQuery request, CancellationToken cancellationToken)
     {
@@ -16,7 +19,8 @@ public class GetOrderStatusQueryHandler(IOrderRepository orderRepository,
 
         if (order == null)
         {
-            throw new KeyNotFoundException($"Order with ID {request.OrderId} not found.");
+            logger.LogWarning($"Order {request.OrderId} not found.");
+            throw new NotFoundException(nameof(Order), request.OrderId.ToString());
         }
 
         var response = mapper.Map<OrderResponse>(order);

@@ -1,5 +1,10 @@
+using Microsoft.Extensions.Options;
+using OrderProcessing.Application;
+using OrderProcessing.Application.Interfaces;
+using OrderProcessing.Application.Services;
 using OrderProcessing.Infrastructure;
 using OrderProcessing.Infrastructure.MessageBroker;
+using OrderProcessing.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,11 +15,25 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Bind RabbitMQ configuration
+builder.Services.AddApplication();
+
 builder.Services.Configure<RabbitMqConfiguration>(builder.Configuration.GetSection(RabbitMqConfiguration.SectionName));
 
-// OR if you want to inject the configuration directly
-builder.Services.AddSingleton(builder.Configuration.GetSection(RabbitMqConfiguration.SectionName).Get<RabbitMqConfiguration>());
+builder.Services.AddSingleton<IMessageBroker>(provider =>
+    {
+        var config = provider.GetRequiredService<IOptions<RabbitMqConfiguration>>();
+        var logger = provider.GetRequiredService<ILogger<RabbitMqMessageBroker>>();
+
+        var broker = new RabbitMqMessageBroker(config, logger);
+
+        broker.InitializeAsync().GetAwaiter().GetResult();
+        
+        return broker;
+
+    });
+builder.Services.AddHostedService<OrderProcessingService>();
+builder.Services.AddSingleton<IOrderRepository, InMemoryOrderRepository>();
+
 
 var app = builder.Build();
 

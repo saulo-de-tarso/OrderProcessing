@@ -7,7 +7,7 @@ namespace OrderProcessing.Application.Services;
 
 public class OrderProcessingService(IMessageBroker messageBroker,
     IOrderRepository orderRepository,
-    ILogger logger) : BackgroundService
+    ILogger<OrderProcessingService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
@@ -15,15 +15,23 @@ public class OrderProcessingService(IMessageBroker messageBroker,
 
         await messageBroker.ConsumeOrdersAsync(async order =>
         {
-            logger.LogInformation($"Processing order {order.Id}");
+            try
+            {
+                logger.LogInformation($"Processing order {order.Id}");
 
-            await Task.Delay(2000, cancellationToken);
+                await Task.Delay(2000, cancellationToken);
 
-            order.Status = OrderStatus.Processed;
+                order.Status = OrderStatus.Processed;
 
-            await orderRepository.UpdateAsync(order);
+                await orderRepository.UpdateAsync(order);
 
-            logger.LogInformation($"Order {order.Id} processed successfully.");
+                logger.LogInformation($"Order {order.Id} processed successfully.");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, $"Failed to process order {order.Id}");
+                throw;
+            }
         });
     }
 }

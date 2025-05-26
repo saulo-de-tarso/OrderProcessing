@@ -17,8 +17,4 @@
     <ProjectReference Include="..\OrderProcessing.Infrastructure\OrderProcessing.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
 </Project>

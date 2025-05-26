@@ -9,7 +9,7 @@ namespace OrderProcessing.Application.Commands.CreateOrder;
 public class CreateOrderCommandHandler(IOrderRepository orderRepository,
     IMessageBroker messageBroker,
     IMapper mapper,
-    ILogger logger) : IRequestHandler<CreateOrderCommand, Guid>
+    ILogger<CreateOrderCommandHandler> logger) : IRequestHandler<CreateOrderCommand, Guid>
 {
     public async Task<Guid> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
     {
