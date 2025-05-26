@@ -5,6 +5,7 @@ using OrderProcessing.Domain.Entities;
 using OrderProcessing.Infrastructure.MessageBroker;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitMQ.Client.Exceptions;
 using System.Text;
 using System.Text.Json;
 
@@ -49,6 +50,7 @@ public sealed class RabbitMqMessageBroker : IMessageBroker, IAsyncDisposable
         if (_initialized) return;
 
         await _initLock.WaitAsync();
+        
         try
         {
             if (_initialized) return;
@@ -57,15 +59,37 @@ public sealed class RabbitMqMessageBroker : IMessageBroker, IAsyncDisposable
             _connection = await factory.CreateConnectionAsync();
             _channel = await _connection.CreateChannelAsync();
 
+            await _channel.ExchangeDeclareAsync(
+                exchange: "dlx",
+                type: ExchangeType.Direct,
+                durable: true);
+
+            await _channel.QueueDeclareAsync(
+                queue: "dead_letter_queue",
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                arguments: null);
+
+            await _channel.QueueBindAsync(
+                queue: "dead_letter_queue",
+                exchange: "dlx",
+                routingKey: "");
+
+
             await _channel.QueueDeclareAsync(
                 queue: _config.QueueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
-                arguments: null);
+                arguments: new Dictionary<string, object>
+                {
+                    { "x-dead-letter-exchange", "dlx" },
+                    { "x-dead-letter-routing-key", "" }
+                });
             
             _initialized = true;
-            _logger.LogInformation("RabbitMQ connection established.");
+            _logger.LogInformation("RabbitMQ connection with DLQ established.");
         }
         catch (Exception ex)
         {
@@ -87,7 +111,11 @@ public sealed class RabbitMqMessageBroker : IMessageBroker, IAsyncDisposable
             
             var properties = new BasicProperties
             {
-                DeliveryMode = DeliveryModes.Persistent
+                DeliveryMode = DeliveryModes.Persistent,
+                Headers = new Dictionary<string, object>
+                {
+                    {"x-retry-count", 0}
+                }
             };
 
             await _channel!.BasicPublishAsync(
@@ -119,18 +147,47 @@ public sealed class RabbitMqMessageBroker : IMessageBroker, IAsyncDisposable
             try
             {
                 var order = JsonSerializer.Deserialize<Order>(ea.Body.Span);
-                if (order != null)
+                if (order == null) throw new InvalidDataException("Invalid message format");
+
+                var retryCount = ea.BasicProperties.Headers?
+                .TryGetValue("x-retry-count", out var countObj) == true ? (int)countObj : 0;
+
+                if(retryCount > 3)
                 {
-                    await processOrder(order);
-                    await _channel.BasicAckAsync(ea.DeliveryTag, false);
-                    _logger.LogInformation($"Processed order {order.Id}");
+                    _logger.LogWarning($"Max retries exceeded for order {order.Id} - sending to DLQ", order.Id);
+                    await _channel.BasicNackAsync(ea.DeliveryTag, false, false);
+                    return;
                 }
+
+                await processOrder(order);
+                await _channel.BasicAckAsync(ea.DeliveryTag, false);
+                _logger.LogInformation($"Processed order {order.Id}");
+                
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing order.");
-                await _channel.BasicNackAsync(ea.DeliveryTag, false, true);
-               
+
+                _logger.LogError(ex, "Processing failed. Republishing...");
+
+                var newProps = new BasicProperties
+                {
+                    Headers = new Dictionary<string, object>(ea.BasicProperties.Headers ?? new Dictionary<string, object>()),
+                    DeliveryMode = DeliveryModes.Persistent
+                };
+
+                newProps.Headers["x-retry-count"] = newProps.Headers.TryGetValue("x-retry-count", out var current)
+                    ? Convert.ToInt32(current) + 1
+                    : 1;
+
+                await _channel.BasicPublishAsync(
+                    exchange: "",
+                    routingKey: _config.QueueName,
+                    mandatory: false,
+                    basicProperties: newProps,
+                    body: ea.Body);
+
+                await _channel.BasicAckAsync(ea.DeliveryTag, false);
+
             }
         };
 
