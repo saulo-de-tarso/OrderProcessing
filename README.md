@@ -41,7 +41,6 @@ A aplicação segue os princípios da **Clean Architecture**, com separação cl
 * **CQRS** com separação de comandos e queries
 * **AutoMapper** para transformação entre DTOs e entidades
 * **Serilog** para logging estruturado
-* **HostedService** para consumidor assíncrono
 
 ---
 
@@ -119,18 +118,7 @@ Resposta:
 
 ---
 
-## 🗂 Estrutura de Diretórios
 
-```
-src/
-├── OrderProcessing.API              → Camada de Apresentação (Controllers)
-├── OrderProcessing.Application      → CQRS, Interfaces, DTOs, Use Cases
-├── OrderProcessing.Domain           → Entidades, Enums, Lógica de Negócio
-├── OrderProcessing.Infrastructure  → RabbitMQ, Logging, In-Memory, Messaging
-└── OrderProcessing.Tests            → Testes unitários/integrados
-```
-
----
 
 ## 🧠 Retry + DLQ
 
