@@ -62,7 +62,7 @@ cd OrderProcessing
 ### 2. Rode o RabbitMQ com Docker
 
 ```bash
-docker compose up -d
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 ```
 
 RabbitMQ estará em:
@@ -79,14 +79,15 @@ cd src/OrderProcessing.API
 dotnet run
 ```
 
+* A aplicação estará acessível em: [http://localhost:5098](http://localhost:5098)
 ---
 
 ## 🧪 Endpoints
 
 ### Criar Pedido
 
-**Descrição:**  Cria um pedido para um cliente com uma lista de itens. Ambos campos são obrigatórios.
-
+**Descrição:**  Cria um pedido para um cliente com uma lista de itens. Ambos campos são obrigatórios.  
+**Retorna:**  Response header com Id da ordem criada. **Utilizar o Id gerado para testar o Endpoint de Consultar Pedido**.
 ```http
 POST /api/Orders
 Content-Type: application/json
