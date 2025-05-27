@@ -16,6 +16,7 @@ public class CreateOrderCommandHandler(IOrderRepository orderRepository,
         var order = mapper.Map<Order>(command);
         order.Id = Guid.NewGuid();
         
+        
         await orderRepository.AddAsync(order);
         await messageBroker.PublishOrderAsync(order);
         

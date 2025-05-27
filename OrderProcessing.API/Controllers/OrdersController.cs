@@ -20,9 +20,10 @@ public class OrdersController(IMediator mediator) : ControllerBase
         return CreatedAtAction(nameof(GetOrder), new {id}, null);
     }
 
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [HttpGet("id")]
-    public async Task<ActionResult<OrderResponse>> GetOrder([FromQuery][Required]Guid id)
+    [HttpGet("{id}")]
+    public async Task<ActionResult<OrderResponse>> GetOrder(Guid id)
     {
         var order = await mediator.Send(new GetOrderStatusQuery(id));
         return Ok(order);

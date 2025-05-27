@@ -1,10 +1,12 @@
 using Microsoft.Extensions.Options;
+using OrderProcessing.API.Middlewares;
 using OrderProcessing.Application;
 using OrderProcessing.Application.Interfaces;
 using OrderProcessing.Application.Services;
 using OrderProcessing.Infrastructure;
 using OrderProcessing.Infrastructure.MessageBroker;
 using OrderProcessing.Infrastructure.Repositories;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +16,10 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Host.UseSerilog((context, configuration) =>
+            configuration.ReadFrom.Configuration(context.Configuration)
+        );
 
 builder.Services.AddApplication();
 
@@ -31,11 +37,20 @@ builder.Services.AddSingleton<IMessageBroker>(provider =>
         return broker;
 
     });
+
 builder.Services.AddHostedService<OrderProcessingService>();
 builder.Services.AddSingleton<IOrderRepository, InMemoryOrderRepository>();
 
 
+
+builder.Services.AddTransient<ErrorHandlingMiddleware>();
+
+
 var app = builder.Build();
+
+app.UseMiddleware<ErrorHandlingMiddleware>();
+
+app.UseSerilogRequestLogging();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
