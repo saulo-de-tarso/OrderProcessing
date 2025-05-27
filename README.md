@@ -88,7 +88,7 @@ dotnet run
 **Retorna:**  Response header com Id da ordem criada. **Utilizar o Id gerado para testar o Endpoint de Consultar Pedido**.
 
 ```http
-  POST /api/items
+POST /api/items
 ```
 
 | Parâmetro   | Tipo       | Descrição                           |
@@ -120,6 +120,11 @@ Response header:
 ```http
 GET api/Orders/{id}
 ```
+
+| Parâmetro   | Tipo       | Descrição                           |
+| :---------- | :--------- | :---------------------------------- |
+| `id` | `Guid` | **Obrigatório**. Informa o Id do pedido a buscar o status. |
+| `items` | `Enum` | Retorno do status do pedido. Valores: Pendente ou Processado. |
 
 Resposta:
 
