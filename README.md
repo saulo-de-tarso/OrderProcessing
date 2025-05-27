@@ -25,8 +25,7 @@ A aplicação segue os princípios da **Clean Architecture**, com separação cl
 │   ├───Commands/
 │   └───Queries/
 ├───OrderProcessing.Domain/
-├───OrderProcessing.Infrastructure/
-└───OrderProcessing.Tests/
+└───OrderProcessing.Infrastructure/
 ```
 
 ---
@@ -85,10 +84,19 @@ dotnet run
 
 ### Criar Pedido
 
-**Descrição:**  Cria um pedido para um cliente com uma lista de itens. Ambos campos são obrigatórios.  
+**Descrição:**  Cria um pedido para um cliente com uma lista de itens.   
 **Retorna:**  Response header com Id da ordem criada. **Utilizar o Id gerado para testar o Endpoint de Consultar Pedido**.
+
 ```http
-POST /api/Orders
+  POST /api/items
+```
+
+| Parâmetro   | Tipo       | Descrição                           |
+| :---------- | :--------- | :---------------------------------- |
+| `clientId` | `string` | **Obrigatório**. Informa o Id do cliente para qual o pedido será criado. |
+| `items` | `List<string>` | **Obrigatório**. Lista de itens do pedido do cliente. |
+
+```http
 Content-Type: application/json
 
 {
@@ -98,7 +106,13 @@ Content-Type: application/json
   ]
 }
 ```
-
+Response header:
+```
+ content-length: 0 
+ date: Tue,27 May 2025 15:18:41 GMT 
+ location: https://localhost:7143/api/Orders/c274a61a-8843-4c22-94f3-bf52b4c63ab5 
+ server: Kestrel 
+```
 ### Consultar Pedido
 
 **Descrição:**  Retorna o status atual do pedido: Pendente ou Processado.
